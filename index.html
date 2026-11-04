@@ -1,0 +1,826 @@
+<!doctype html><html lang="th"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#f6f1e7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1b1815" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ห้องอ่านสอบ">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>ห้องอ่านสอบ 1/2569</title>
+<style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style></head><body><title>ห้องอ่านสอบ 1/2569</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&family=Prompt:wght@500;600;700&display=swap">
+<style>
+/* Layout: app shell with a sticky top bar. Home = exam countdown + subject cards + exam timetable.
+   Subject = unit ledger grouped by exam. Unit = one 680px reading column, sticky section rail, per-section "read" marks. */
+:root{
+  --paper:#f6f1e7; --card:#fffdf8; --soft:#efe7d8; --ink:#2a2420; --muted:#6b6155; --line:#e2d7c3;
+  --crim:#c25a1f; --gen:#2d6d67; --thai:#6b51a3;
+  --ok:#3f7b3c; --amber:#9a640f; --red:#b2412e; --blue:#2f5f8f;
+  --sc:var(--crim);
+  --display:"Prompt","IBM Plex Sans Thai",system-ui,sans-serif;
+  --body:"IBM Plex Sans Thai","Prompt",system-ui,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --fs:17px; --barh:52px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#1b1815; --card:#25211d; --soft:#2d2823; --ink:#efe6d8; --muted:#a99d8e; --line:#3b342d;
+  --crim:#f08a4b; --gen:#62b8ae; --thai:#ab95e8; --ok:#86c47f; --amber:#e3a94a; --red:#f08372; --blue:#7fb0e0;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#1b1815; --card:#25211d; --soft:#2d2823; --ink:#efe6d8; --muted:#a99d8e; --line:#3b342d;
+  --crim:#f08a4b; --gen:#62b8ae; --thai:#ab95e8; --ok:#86c47f; --amber:#e3a94a; --red:#f08372; --blue:#7fb0e0;
+  color-scheme:dark}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--paper);color:var(--ink);font:400 var(--fs)/1.78 var(--body);margin:0;padding-inline:16px;padding-block:0 96px;overflow-wrap:break-word}
+[data-sj="41216"]{--sc:var(--crim)} [data-sj="40101"]{--sc:var(--gen)} [data-sj="10151"]{--sc:var(--thai)}
+.wrap{max-width:680px;margin:0 auto}
+h1,h2,h3,h4{font-family:var(--display);line-height:1.35;text-wrap:balance;margin:0}
+p{margin:0 0 .85em}
+a{color:var(--sc)}
+button{font:inherit;color:inherit}
+.ib{background:none;border:0;width:40px;height:40px;border-radius:10px;display:grid;place-items:center;cursor:pointer;color:var(--ink);flex:none}
+.ib:hover{background:var(--soft)}
+.ib svg{width:22px;height:22px}
+a:focus-visible,button:focus-visible,summary:focus-visible,input:focus-visible{outline:2px solid var(--sc);outline-offset:2px}
+
+/* top bar */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--paper);margin-inline:-16px;padding-inline:8px;height:var(--barh);display:flex;align-items:center;gap:4px;border-bottom:1px solid transparent;transition:border-color .2s}
+.bar.edge{border-bottom-color:var(--line)}
+.bar-t{flex:1;min-width:0;font:600 .92rem var(--display);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:4px}
+.bar-t .dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--sc);margin-right:8px;vertical-align:.08em}
+#prog{position:fixed;left:0;top:env(safe-area-inset-top,0px);height:3px;width:0;background:var(--sc);z-index:30;transition:width .1s linear}
+
+/* shared bits */
+.eyebrow{font:500 .8rem var(--display);color:var(--muted);letter-spacing:.03em}
+.pill{display:inline-flex;align-items:center;gap:6px;font:600 .74rem var(--display);padding:3px 10px;border-radius:99px;background:var(--soft);color:var(--ink);white-space:nowrap}
+.pill.hot{background:var(--sc);color:var(--paper)}
+.ring{flex:none;display:block}
+.rg-b{fill:none;stroke:var(--line);stroke-width:3.5}
+.rg-f{fill:none;stroke:var(--sc);stroke-width:3.5;stroke-linecap:round;transition:stroke-dashoffset .8s cubic-bezier(.2,.7,.2,1)}
+.rg-c{fill:none;stroke:var(--sc);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.meter{height:6px;border-radius:99px;background:var(--line);overflow:hidden}
+.meter i{display:block;height:100%;width:0;background:var(--sc);border-radius:99px;transition:width .8s cubic-bezier(.2,.7,.2,1)}
+.rise{animation:rise .5s both}
+@keyframes rise{from{opacity:.35;transform:translateY(8px)}}
+
+/* home */
+.hero{padding-block:30px 22px}
+.count{display:flex;align-items:baseline;gap:10px;margin-top:6px;color:var(--crim)}
+.count .num{font:700 clamp(5rem,30vw,8.5rem)/.95 var(--display);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.count .u{font:600 1.6rem var(--display)}
+.count-l{font-size:1rem;margin-top:8px}
+.count-l b{font-family:var(--display);font-weight:600}
+.count-s{font-size:.86rem;color:var(--muted)}
+.resume{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;text-decoration:none;color:var(--ink);margin-block:6px 26px}
+.resume .rt{flex:1;min-width:0}
+.resume .rt b{display:block;font:600 1rem var(--display);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.resume .rt span{font-size:.82rem;color:var(--muted)}
+.go{flex:none;width:40px;height:40px;border-radius:50%;background:var(--sc);color:var(--paper);display:grid;place-items:center}
+.go svg{width:20px;height:20px}
+.h-sec{font:600 1.05rem var(--display);margin:30px 0 12px}
+.subjs{display:grid;gap:12px}
+.subj{display:grid;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px 18px;text-decoration:none;color:var(--ink);position:relative;overflow:hidden}
+.subj-top{display:flex;align-items:center;gap:10px;justify-content:space-between}
+.code{font:600 .8rem var(--display);color:var(--sc);letter-spacing:.06em;font-variant-numeric:tabular-nums}
+.subj-name{font:600 1.45rem var(--display);line-height:1.2}
+.subj-meta{font-size:.84rem;color:var(--muted)}
+.subj .mark{position:absolute;right:-18px;bottom:-30px;font:700 6.5rem/1 var(--display);color:var(--sc);opacity:.07;pointer-events:none;font-variant-numeric:tabular-nums}
+.exams{list-style:none;padding:0;margin:0;display:grid;gap:8px}
+.exams li{display:grid;grid-template-columns:3.4em 1fr auto;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.exams li:last-child{border-bottom:0}
+.dt-tile{text-align:center;line-height:1.1}
+.dt-tile b{display:block;font:700 1.5rem var(--display);color:var(--sc);font-variant-numeric:tabular-nums}
+.dt-tile span{font-size:.72rem;color:var(--muted)}
+.exams .ex-t{min-width:0}
+.exams .ex-t b{font:600 .95rem var(--display)}
+.exams .ex-t span{display:block;font-size:.8rem;color:var(--muted)}
+.foot{margin-top:40px;font-size:.78rem;color:var(--muted);display:grid;gap:6px}
+.sync{display:inline-flex;align-items:center;gap:6px}
+.sync i{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.sync.on i{background:var(--ok)}
+
+/* subject page */
+.shead{padding-block:24px 6px}
+.shead h1{font-size:2rem;margin-top:4px}
+.sexams{display:grid;gap:6px;margin-top:14px}
+.sexams div{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;font-size:.9rem}
+.sexams b{font:600 .92rem var(--display)}
+.note{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;font-size:.9rem;margin-top:16px}
+.note b{font-family:var(--display);font-weight:600}
+.grp{font:600 .82rem var(--display);color:var(--muted);letter-spacing:.04em;margin:30px 0 8px;display:flex;align-items:center;gap:8px}
+.grp::after{content:"";flex:1;height:1px;background:var(--line)}
+.units{list-style:none;margin:0;padding:0}
+.urow{display:grid;grid-template-columns:2.6em 1fr auto;gap:12px;align-items:center;padding:12px 4px;border-bottom:1px solid var(--line);text-decoration:none;color:var(--ink)}
+.urow:hover{background:color-mix(in srgb,var(--sc) 5%,transparent)}
+.un{font:700 1.35rem var(--display);color:var(--sc);font-variant-numeric:tabular-nums;text-align:center}
+.ut{min-width:0;font:500 .98rem/1.45 var(--display)}
+.ut small{display:block;font:400 .78rem var(--body);color:var(--muted);margin-top:2px}
+.urow.off{opacity:.55}
+.urow.off .un{color:var(--muted)}
+.urow .x{font-size:1.1rem;color:var(--sc);text-align:center}
+
+/* unit page */
+.uhead{padding-block:22px 8px}
+.uhead h1{display:flex;gap:14px;align-items:flex-start;font-size:1.55rem;margin-top:8px}
+.uhead h1>span:last-child{min-width:0}
+.doc,.sec,.co,.co-b,.law,.dk,.tree,.tw{max-width:100%;min-width:0}
+.unum{font:700 2.9rem/.9 var(--display);color:var(--sc);font-variant-numeric:tabular-nums;flex:none}
+.umeta{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+.uprog{display:flex;align-items:center;gap:10px;margin-top:14px;font-size:.8rem;color:var(--muted)}
+.uprog .meter{flex:1}
+.seg{display:flex;background:var(--soft);border-radius:12px;padding:4px;margin-top:16px;gap:4px}
+.seg button{flex:1;border:0;background:none;border-radius:9px;padding:8px 6px;font:600 .88rem var(--display);color:var(--muted);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--card);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.seg small{display:block;font:400 .7rem var(--body)}
+.legend{font-size:.78rem;color:var(--muted);margin-top:10px}
+.rail{position:sticky;top:calc(env(safe-area-inset-top,0px) + var(--barh));z-index:15;background:var(--paper);margin-inline:-16px;padding:8px 16px;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--line)}
+.rail::-webkit-scrollbar{display:none}
+.rail button{flex:none;border:1px solid var(--line);background:var(--card);border-radius:99px;padding:4px 12px;font:500 .8rem var(--display);color:var(--muted);cursor:pointer;white-space:nowrap}
+.rail button.on{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.rail button.done::before{content:"✓ ";color:var(--ok)}
+.rail button.on.done::before{color:inherit}
+.loading{padding:40px 0;color:var(--muted)}
+.uend{padding-block:30px;display:grid;gap:14px}
+.nav2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.nav2 a{display:grid;gap:2px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;text-decoration:none;color:var(--ink);min-width:0}
+.nav2 a span{font-size:.74rem;color:var(--muted)}
+.nav2 a b{font:600 .9rem var(--display);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nav2 a.nx{text-align:right}
+.srcs{font-size:.78rem;color:var(--muted)}
+
+/* document */
+.doc{counter-reset:none}
+.sec{padding-block:26px 6px;border-top:1px solid var(--line);scroll-margin-top:calc(var(--barh) + 64px)}
+.sec:first-child{border-top:0;padding-top:12px}
+.sec-t{font-size:1.32em;margin-bottom:.7em}
+.hx{scroll-margin-top:calc(var(--barh) + 64px)}
+h3.hx{font-size:1.1em;margin:1.5em 0 .6em}
+h4.hx{font-size:1em;margin:1.3em 0 .5em;color:var(--muted)}
+.doc ul,.doc ol{padding-left:1.25em;margin:0 0 .9em}
+.doc li{margin-bottom:.3em}
+.doc li::marker{color:var(--sc)}
+.doc strong{font-weight:600}
+.doc hr{border:0;border-top:1px dashed var(--line);margin:1.4em 0}
+.doc code{font:.88em var(--mono);background:var(--soft);padding:.05em .35em;border-radius:5px}
+.doc mark{background:color-mix(in srgb,var(--sc) 22%,transparent);color:inherit;border-radius:3px;padding:0 .15em}
+.ex{display:inline-block;font:600 .7em/1.6 var(--display);color:var(--sc);border:1px solid color-mix(in srgb,var(--sc) 45%,transparent);border-radius:99px;padding:0 .55em;white-space:nowrap;vertical-align:.12em}
+.src{display:inline-block;font-size:.7em;line-height:1.5;color:var(--muted);background:var(--soft);border-radius:5px;padding:0 .4em;white-space:nowrap;vertical-align:.12em;margin-inline:.1em}
+.nosrc .src{display:none}
+.lr{background:none;border:0;padding:0;font-weight:600;color:var(--sc);border-bottom:1.5px dotted currentColor;cursor:pointer;line-height:1.3}
+.xl{font-weight:600}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--card);margin:0 0 1em;-webkit-overflow-scrolling:touch}
+.tw table{border-collapse:collapse;width:100%;font-size:.9em;line-height:1.6}
+.tw th{background:var(--soft);font:600 .92em var(--display);text-align:left;vertical-align:bottom}
+.tw th,.tw td{padding:.55em .75em;border-bottom:1px solid var(--line);vertical-align:top;min-width:6.5em}
+.tw tr:last-child td{border-bottom:0}
+.tw td+td,.tw th+th{border-left:1px solid var(--line)}
+.tree{margin:0 0 1em}
+.tree pre{margin:0;font:.8em/1.65 var(--mono);background:var(--soft);border-radius:12px;padding:14px 16px;overflow-x:auto;white-space:pre}
+.tree b{color:var(--sc)}
+blockquote{margin:0 0 1em}
+.bq{padding-left:14px;border-left:3px solid var(--line);color:var(--muted)}
+.law,.dk{background:var(--soft);border-radius:12px;padding:12px 16px;font-size:.95em;line-height:1.9;position:relative}
+.law::before,.dk::before{content:"ตัวบท";display:block;font:600 .72rem var(--display);color:var(--muted);letter-spacing:.05em;margin-bottom:2px}
+.dk::before{content:"ฎีกาคัดย่อ"}
+.law p:last-child,.dk p:last-child{margin-bottom:0}
+.law.clamp{max-height:14.5em;overflow:hidden}
+.law.clamp::after{content:"";position:absolute;left:0;right:0;bottom:0;height:4.5em;background:linear-gradient(transparent,var(--soft));border-radius:0 0 12px 12px}
+.more{display:block;margin:-.6em 0 1em;background:none;border:0;color:var(--sc);font:600 .82rem var(--display);cursor:pointer;padding:4px 0}
+.co{--k:var(--sc);border:1px solid color-mix(in srgb,var(--k) 28%,var(--line));background:color-mix(in srgb,var(--k) 7%,var(--card));border-radius:14px;padding:12px 16px 4px;margin:0 0 1em}
+.co-t{font:600 .9em var(--display);color:var(--k);margin-bottom:.35em;line-height:1.45}
+details.co>summary{cursor:pointer;list-style:none;margin-bottom:.6em}
+details.co>summary::-webkit-details-marker{display:none}
+details.co>summary::after{content:" ▾";font-size:.8em}
+details.co[open]>summary::after{content:" ▴"}
+.co-b>:last-child{margin-bottom:.75em}
+.co .law,.co .dk{background:color-mix(in srgb,var(--card) 60%,transparent)}
+.co .tw{background:var(--card)}
+.co-tip,.co-success{--k:var(--ok)} .co-warning{--k:var(--amber)} .co-danger{--k:var(--red)}
+.co-note,.co-info,.co-question{--k:var(--blue)} .co-quote{--k:var(--muted)} .co-abstract,.co-important{--k:var(--sc)}
+details.dt{border:1px solid var(--line);border-radius:12px;padding:10px 16px;margin:0 0 1em;background:var(--card)}
+details.dt>summary{cursor:pointer;font:500 .92em var(--display)}
+.dt-b{margin-top:.8em}
+.tl ol{list-style:none;margin:0 0 1.1em 6px;padding:2px 0 0 20px;border-left:2px solid var(--line)}
+.tl li{position:relative;padding:0 0 14px 2px;line-height:1.6}
+.tl li::before{content:"";position:absolute;left:-27px;top:.3em;width:12px;height:12px;box-sizing:border-box;border-radius:50%;background:var(--paper);border:3px solid var(--sc)}
+.tl-t{display:block;font:600 .78em var(--display);color:var(--sc);letter-spacing:.02em}
+.tl-k{font:600 1em var(--display)}
+.tl-c span{color:var(--muted)}
+.sec-end{display:flex;justify-content:flex-end;padding:6px 0 14px}
+.done-btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--card);border-radius:99px;padding:7px 16px;font:600 .82rem var(--display);color:var(--muted);cursor:pointer}
+.done-btn svg{width:18px;height:18px}
+.done-btn .ck{stroke-dasharray:16;stroke-dashoffset:16}
+.done-btn[aria-pressed="true"]{background:var(--ok);border-color:var(--ok);color:var(--paper)}
+.done-btn[aria-pressed="true"] .ck{stroke-dashoffset:0;transition:stroke-dashoffset .35s ease-out}
+.done-btn[aria-pressed="true"] .cc{fill:none}
+.all-done{background:color-mix(in srgb,var(--ok) 10%,var(--card));border:1px solid color-mix(in srgb,var(--ok) 35%,var(--line));border-radius:14px;padding:12px 16px;font:500 .92rem var(--display)}
+
+/* quick mode: show only boxes, tables, trees and anything marked as asked in the exam */
+.mode-quick .b:not(.hl),.mode-quick .hx:not(.hl),.mode-quick .sec:not(.hl){display:none}
+
+/* sheet */
+.sheet{position:fixed;inset:0;z-index:50}
+.sheet-bg{position:absolute;inset:0;background:rgba(20,15,10,.42);opacity:0;transition:opacity .2s}
+.sheet-p{position:absolute;left:0;right:0;bottom:0;max-height:82vh;display:flex;flex-direction:column;background:var(--card);border-radius:20px 20px 0 0;padding:6px 18px calc(18px + env(safe-area-inset-bottom,0px));transform:translateY(100%);transition:transform .25s cubic-bezier(.2,.8,.2,1);max-width:720px;margin:0 auto}
+.sheet.open .sheet-bg{opacity:1}
+.sheet.open .sheet-p{transform:none}
+.sheet-h{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+.sheet-h b{font:600 1.05rem var(--display)}
+.sheet-c{overflow-y:auto;padding-top:12px;-webkit-overflow-scrolling:touch}
+.sheet-c .law-t p{margin:0 0 .8em;line-height:1.95}
+.sheet-c .cap{font-size:.76rem;color:var(--muted)}
+.toc{list-style:none;margin:0;padding:0}
+.toc button{display:flex;gap:10px;width:100%;text-align:left;background:none;border:0;padding:10px 4px;border-bottom:1px solid var(--line);cursor:pointer;font:500 .95rem var(--display)}
+.toc .sub button{padding-left:22px;font:400 .88rem var(--body);color:var(--muted)}
+.toc .ck2{width:1.2em;color:var(--ok);flex:none}
+.setrow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.setrow b{font:500 .95rem var(--display)}
+.setrow small{display:block;font-size:.78rem;color:var(--muted)}
+.stepper{display:flex;align-items:center;gap:6px}
+.stepper button{width:40px;height:36px;border-radius:10px;border:1px solid var(--line);background:var(--paper);cursor:pointer;font:600 .9rem var(--display)}
+.stepper span{min-width:3.2em;text-align:center;font:500 .85rem var(--display);font-variant-numeric:tabular-nums}
+.switch{appearance:none;-webkit-appearance:none;width:46px;height:28px;border-radius:99px;background:var(--line);position:relative;cursor:pointer;flex:none;transition:background .2s}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:var(--card);transition:transform .2s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.switch:checked{background:var(--ok)}
+.switch:checked::after{transform:translateX(18px)}
+
+/* lock screen (GitHub version) */
+.lock{max-width:360px;margin:12vh auto 0;display:grid;gap:10px;text-align:center}
+.lock h1{font-size:1.7rem}
+.lock p{color:var(--muted);font-size:.92rem}
+.lock-mark{display:flex;justify-content:center;align-items:flex-end;gap:6px;height:64px}
+.lock-mark i{display:block;width:16px;border-radius:4px 4px 2px 2px}
+.lock-mark i:nth-child(1){height:58px;background:var(--crim)} .lock-mark i:nth-child(2){height:48px;background:var(--gen)} .lock-mark i:nth-child(3){height:64px;background:var(--thai)}
+.lock form{display:grid;gap:10px;text-align:left;margin-top:8px}
+.lock label{font:500 .85rem var(--display)}
+.lock input{font:inherit;font-size:1.05rem;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+.lock button{font:600 1rem var(--display);padding:12px;border-radius:12px;border:0;background:var(--ink);color:var(--paper);cursor:pointer}
+.lock button:disabled{opacity:.6}
+.lock .err{color:var(--red);font-size:.88rem;margin:0}
+@media (min-width:760px){
+  .subjs{grid-template-columns:repeat(3,1fr)}
+  .wrap.wide{max-width:900px}
+}
+@media (max-width:380px){.unum{font-size:2.3rem}.uhead h1{font-size:1.35rem}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<header class="bar" id="bar">
+  <button class="ib" id="backBtn" type="button" aria-label="ย้อนกลับ" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+  <div class="bar-t" id="barT"></div>
+  <button class="ib" id="tocBtn" type="button" aria-label="สารบัญหน่วยนี้" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg></button>
+  <button class="ib" id="setBtn" type="button" aria-label="ตั้งค่าการอ่าน"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19l5-14 5 14M6 14h6M16 19l3-8 3 8M17.2 16.5h3.6"/></svg></button>
+</header>
+<div id="prog"></div>
+<main class="wrap" id="view"></main>
+<div class="sheet" id="sheet" hidden>
+  <div class="sheet-bg" data-close></div>
+  <div class="sheet-p" role="dialog" aria-modal="true" aria-labelledby="sheetT">
+    <div class="sheet-h"><b id="sheetT"></b><button class="ib" type="button" data-close aria-label="ปิด"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <div class="sheet-c" id="sheetC"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var CFG = /*CONFIG*/{"enc": true, "salt": "llb-study-site/v1", "iter": 250000};
+var M = /*MANIFEST*/null;
+var KEY = null;
+var SUBJ = [
+  {id:'41216', name:'กฎหมายอาญา', exams:[
+    {l:'สอบกลางภาค', d:'2026-11-29', tm:'10.45–12.15 น.', where:'ออนไลน์', scope:'หน่วย 1–7 · ปรนัยและอัตนัย'},
+    {l:'สอบปลายภาค', d:'2027-01-30', tm:'13.30–15.30 น.', where:'ออนไลน์', scope:'หน่วย 8–15'}],
+    groups:[['mid','สอบกลางภาค · หน่วย 1–7'],['practice','ฝึกเขียนตอบ'],['final','สอบปลายภาค · หน่วย 8–15']]},
+  {id:'40101', name:'กฎหมายทั่วไป', exams:[
+    {l:'สอบปลายภาค', d:'2027-01-31', tm:'09.00–12.00 น.', where:'สนามสอบ', scope:'หน่วย 1–15 · ปรนัย'}],
+    groups:[['intro','เริ่มที่นี่'],['final','15 หน่วย'],['practice','ก่อนเข้าห้องสอบ']]},
+  {id:'10151', name:'ไทยศึกษา', exams:[
+    {l:'สอบปลายภาค', d:'2027-01-31', tm:'13.30–16.30 น.', where:'สนามสอบ', scope:'หน่วย 1–15'}],
+    groups:[['final','15 หน่วย']]}
+];
+var UNITS = {};
+
+var $ = function(s, el){ return (el || document).querySelector(s); };
+var $$ = function(s, el){ return Array.prototype.slice.call((el || document).querySelectorAll(s)); };
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function subjOf(id){ for (var i = 0; i < SUBJ.length; i++) if (SUBJ[i].id === id) return SUBJ[i]; return null; }
+function pad(n){ return n < 10 ? '0' + n : '' + n; }
+
+/* ---------- dates (พ.ศ.) */
+var TM = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+var TD = ['อา.','จ.','อ.','พ.','พฤ.','ศ.','ส.'];
+function parseD(s){ var a = String(s).split('-').map(Number); return new Date(a[0], a[1] - 1, a[2]); }
+function today(){ var d = new Date(); d.setHours(0,0,0,0); return d; }
+function daysLeft(s){ return Math.round((parseD(s) - today()) / 864e5); }
+function thDate(s, withDay){ var d = typeof s === 'string' ? parseD(s) : s; return (withDay ? TD[d.getDay()] + ' ' : '') + d.getDate() + ' ' + TM[d.getMonth()] + ' ' + (d.getFullYear() + 543); }
+
+/* ---------- state: localStorage first, synced through db when this view has it */
+var LS = 'llb-study-v1', LP = 'llb-pref-v1';
+var S = {v:1, t:0, r:{}, o:{}, seen:{}, last:null};
+var P = {fs:2, mode:'full', src:true};
+try { var x = JSON.parse(localStorage.getItem(LS)); if (x && x.v === 1) S = Object.assign(S, x); } catch (e) {}
+try { var y = JSON.parse(localStorage.getItem(LP)); if (y) P = Object.assign(P, y); } catch (e) {}
+function saveLocal(){ try { localStorage.setItem(LS, JSON.stringify(S)); } catch (e) {} }
+function savePref(){ try { localStorage.setItem(LP, JSON.stringify(P)); } catch (e) {} }
+function touch(){ S.t = Date.now(); saveLocal(); sync.schedule(); }
+
+var sync = {ref:null, status:'local', tm:0, writing:false, again:false,
+  schedule: function(ms){ var me = this; if (!me.ref) return; clearTimeout(me.tm); me.tm = setTimeout(function(){ me.flush(); }, ms || 2500); },
+  flush: function(){
+    var me = this; if (!me.ref) return;
+    if (me.writing) { me.again = true; return; }
+    me.writing = true;
+    me.ref.set(JSON.parse(JSON.stringify(S))).then(function(){ me.status = 'on'; }, function(e){
+      if (e && (e.code === 'invalid_argument' || e.code === 'revoked' || e.code === 'not_granted')) { me.ref = null; me.status = 'local'; }
+    }).then(function(){ me.writing = false; updSync(); if (me.again) { me.again = false; me.flush(); } });
+  }
+};
+(function(){
+  if (!window.claude || typeof window.claude.use !== 'function') return;
+  Promise.all([window.claude.use('user'), window.claude.use('db')]).then(function(r){
+    var user = r[0], db = r[1];
+    if (!user || !db) return null;
+    return user.id().then(function(uid){
+      if (!uid) return;
+      var ref = db.doc('data/users/' + uid + '/progress');
+      sync.ref = ref; sync.status = 'wait'; updSync();
+      var timer = setTimeout(function(){ if (sync.status === 'wait') { sync.status = 'slow'; updSync(); } }, 10000);
+      ref.onSnapshot(function(snap){
+        if (!snap.metadata.fromCache) { clearTimeout(timer); if (sync.status !== 'on') { sync.status = 'on'; updSync(); } }
+        if (snap.exists) {
+          var d = snap.data();
+          if (d && d.v === 1 && (d.t || 0) > (S.t || 0)) { S = JSON.parse(JSON.stringify(d)); saveLocal(); refreshMarks(); }
+        }
+      }, function(){ clearTimeout(timer); sync.ref = null; sync.status = 'local'; updSync(); });
+    });
+  }).catch(function(){});
+})();
+document.addEventListener('visibilitychange', function(){ if (document.visibilityState === 'hidden' && sync.ref && sync.tm) { clearTimeout(sync.tm); sync.flush(); } });
+function syncText(){
+  return {on:'ความคืบหน้าซิงก์ข้ามเครื่องแล้ว', wait:'กำลังเชื่อมที่เก็บความคืบหน้า…', slow:'ยังเชื่อมที่เก็บไม่ได้ ใช้ข้อมูลในเครื่องนี้ไปก่อน', local:CFG.enc ? 'ความคืบหน้าเก็บในเครื่องนี้ (แต่ละเครื่องนับแยกกัน)' : 'ความคืบหน้าเก็บในเครื่องนี้'}[sync.status];
+}
+function updSync(){ $$('.sync').forEach(function(el){ el.className = 'sync' + (sync.status === 'on' ? ' on' : ''); el.lastChild.textContent = syncText(); }); }
+
+/* ---------- prefs */
+var SIZES = [15, 16, 17, 18, 20, 22];
+function applyPref(){
+  if (!(P.fs >= 0 && P.fs < SIZES.length)) P.fs = 2;
+  document.documentElement.style.setProperty('--fs', SIZES[P.fs] + 'px');
+  document.body.classList.toggle('nosrc', !P.src);
+}
+applyPref();
+
+/* ---------- progress helpers */
+function secIds(u){ return (u.toc || []).map(function(t){ return t.id; }); }
+function readCount(u){ var r = S.r[u.k] || {}; return secIds(u).filter(function(i){ return r[i]; }).length; }
+function unitPct(u){ var n = secIds(u).length; return n ? readCount(u) / n : 0; }
+function stats(id){
+  var us = M.units.filter(function(u){ return u.sj === id && u.kind === 'unit'; });
+  var ready = us.filter(function(u){ return u.ready; });
+  var done = ready.filter(function(u){ return unitPct(u) >= 1; }).length;
+  var pct = ready.length ? ready.reduce(function(a, u){ return a + unitPct(u); }, 0) / ready.length : 0;
+  return {total:us.length, ready:ready.length, done:done, pct:pct};
+}
+function ring(p, size){
+  var r = 14, c = 2 * Math.PI * r;
+  return '<svg class="ring" viewBox="0 0 34 34" width="' + (size || 34) + '" height="' + (size || 34) + '" aria-hidden="true"><circle cx="17" cy="17" r="14" class="rg-b"/>' +
+    '<circle cx="17" cy="17" r="14" class="rg-f" stroke-dasharray="' + c.toFixed(2) + '" stroke-dashoffset="' + (c * (1 - p)).toFixed(2) + '" transform="rotate(-90 17 17)"/>' +
+    (p >= 1 ? '<path d="M11.5 17.5l3.8 3.8 7.5-8.3" class="rg-c"/>' : '') + '</svg>';
+}
+var ARROW = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>';
+function unitLabel(u){ return u.n ? 'หน่วย ' + u.n : (u.g === 'practice' || u.g === 'intro' ? 'แผ่นเสริม' : ''); }
+function seenText(k){ var t = S.seen[k]; if (!t) return ''; return 'เปิดล่าสุด ' + thDate(new Date(t)); }
+
+/* ---------- top bar */
+var backTo = null;
+function setBar(title, back, sj, showToc){
+  document.body.setAttribute('data-sj', sj || '');
+  $('#barT').innerHTML = title ? '<span class="dot"></span>' + esc(title) : '<span style="font-weight:700">ห้องอ่านสอบ</span> <span style="color:var(--muted);font-weight:500">1/2569</span>';
+  backTo = back; $('#backBtn').hidden = (back == null); $('#tocBtn').hidden = !showToc;
+}
+$('#backBtn').addEventListener('click', function(){ if (backTo != null) location.hash = backTo; });
+addEventListener('scroll', function(){ $('#bar').classList.toggle('edge', scrollY > 8); }, {passive:true});
+
+/* ---------- home */
+function upcoming(){
+  var all = [];
+  SUBJ.forEach(function(s){ s.exams.forEach(function(e){ all.push({s:s, e:e, left:daysLeft(e.d)}); }); });
+  return all.filter(function(x){ return x.left >= 0; }).sort(function(a, b){ return a.left - b.left; });
+}
+function showHome(){
+  setBar('', null, '', false);
+  var up = upcoming(), first = up[0], h = [];
+  h.push('<section class="hero">');
+  h.push('<div class="eyebrow">ภาคต้น 1/2569 · วันนี้ ' + esc(thDate(today(), true)) + '</div>');
+  if (first) {
+    h.push('<div class="count rise" style="color:var(--' + ({'41216':'crim','40101':'gen','10151':'thai'}[first.s.id]) + ')">' +
+      (first.left === 0 ? '<span class="num">วันนี้</span>' : '<span class="num">' + first.left + '</span><span class="u">วัน</span>') + '</div>');
+    h.push('<div class="count-l">' + (first.left === 0 ? '' : 'ถึง') + esc(first.e.l) + ' <b>' + esc(first.s.name) + '</b></div>');
+    h.push('<div class="count-s">' + esc(thDate(first.e.d, true)) + ' · ' + esc(first.e.tm) + ' · ' + esc(first.e.where) + ' · ออก ' + esc(first.e.scope) + '</div>');
+  } else {
+    h.push('<div class="count-l"><b>สอบครบทุกวิชาแล้ว</b></div>');
+  }
+  h.push('</section>');
+  var L = S.last && UNITS[S.last.k] && UNITS[S.last.k].ready ? S.last : null;
+  if (L) {
+    var u = UNITS[L.k], s = subjOf(u.sj), sec = (u.toc || []).filter(function(t){ return t.id === L.s; })[0];
+    h.push('<a class="resume rise" data-sj="' + u.sj + '" href="#u-' + u.k + '" data-resume="1"><div class="rt"><span>อ่านต่อ · ' + esc(s.name) + ' ' + esc(unitLabel(u)) + '</span><b>' + esc(sec ? sec.t : u.t) + '</b><span>' + esc(u.t) + '</span></div><span class="go">' + ARROW + '</span></a>');
+  }
+  h.push('<h2 class="h-sec">ชุดวิชา</h2><div class="subjs">');
+  SUBJ.forEach(function(s, i){
+    var st = stats(s.id), nx = s.exams.map(function(e){ return {e:e, left:daysLeft(e.d)}; }).filter(function(x){ return x.left >= 0; })[0];
+    var meta = st.ready ? 'มีสรุป ' + st.ready + ' จาก ' + st.total + ' หน่วย · อ่านครบแล้ว ' + st.done + ' หน่วย' : 'ยังไม่มีสรุป · ' + st.total + ' หน่วยรอสร้างจากเอกสารการสอน';
+    h.push('<a class="subj rise" style="animation-delay:' + (80 + i * 70) + 'ms" data-sj="' + s.id + '" href="#s-' + s.id + '">' +
+      '<div class="subj-top"><span class="code">' + s.id + '</span>' + (nx ? '<span class="pill' + (nx.left <= 30 ? ' hot' : '') + '">' + esc(nx.e.l.replace('สอบ', '')) + ' อีก ' + nx.left + ' วัน</span>' : '') + '</div>' +
+      '<div class="subj-name">' + esc(s.name) + '</div><div class="subj-meta">' + esc(meta) + '</div>' +
+      (st.ready ? '<div class="meter"><i style="width:' + Math.round(st.pct * 100) + '%"></i></div>' : '') +
+      '<span class="mark" aria-hidden="true">' + s.id.slice(-2) + '</span></a>');
+  });
+  h.push('</div><h2 class="h-sec">ตารางสอบ</h2><ul class="exams">');
+  up.forEach(function(x){
+    var d = parseD(x.e.d);
+    h.push('<li data-sj="' + x.s.id + '"><div class="dt-tile"><b>' + d.getDate() + '</b><span>' + TM[d.getMonth()] + ' ' + String(d.getFullYear() + 543).slice(2) + '</span></div>' +
+      '<div class="ex-t"><b>' + esc(x.s.name) + ' · ' + esc(x.e.l) + '</b><span>' + esc(TD[d.getDay()] + ' ' + x.e.tm + ' · ' + x.e.where) + '</span><span>' + esc(x.e.scope) + '</span></div>' +
+      '<span class="pill">อีก ' + x.left + ' วัน</span></li>');
+  });
+  h.push('</ul>');
+  h.push(foot());
+  $('#view').innerHTML = h.join('');
+}
+function foot(){
+  var off = CFG.enc && navigator.serviceWorker && navigator.serviceWorker.controller;
+  return '<div class="foot"><span class="sync"><i></i><span>' + esc(syncText()) + '</span></span>' +
+    (off ? '<span>เก็บเนื้อหาไว้ในเครื่องแล้ว เปิดอ่านได้แม้ไม่มีเน็ต</span>' : '') +
+    '<span>สรุปเพื่อการศึกษา ย่อจากคลังความรู้ส่วนตัว · ตัวบทคัดคำต่อคำจากคลัง · ไม่ใช่คำแนะนำทางกฎหมาย</span></div>';
+}
+
+/* ---------- subject */
+function unitRow(u){
+  var label = u.n ? pad(u.n) : '·';
+  if (!u.ready) {
+    return '<li><div class="urow off"><span class="un">' + label + '</span><span class="ut">' + esc(u.t) + '<small>ยังไม่มีสรุปในคลัง</small></span><span></span></div></li>';
+  }
+  var n = secIds(u).length, rc = readCount(u), meta = [];
+  meta.push('อ่านเต็ม ~' + u.mf + ' นาที');
+  if (u.one) meta.push('หน้าเดียว ~' + (u.mo || 5) + ' นาที');
+  meta.push(rc ? 'อ่านแล้ว ' + rc + '/' + n + ' ส่วน' : (seenText(u.k) || 'ยังไม่ได้เปิด'));
+  return '<li><a class="urow" href="#u-' + u.k + '"><span class="un">' + label + '</span><span class="ut">' + esc(u.t) + '<small>' + esc(meta.join(' · ')) + '</small></span>' + ring(unitPct(u)) + '</a></li>';
+}
+function showSubj(id){
+  var s = subjOf(id), st = stats(id), h = [];
+  setBar(s.name, '', id, false);
+  h.push('<section class="shead"><span class="code">' + s.id + '</span><h1>' + esc(s.name) + '</h1><div class="sexams">');
+  s.exams.forEach(function(e){ var l = daysLeft(e.d); h.push('<div><b>' + esc(e.l) + '</b><span>' + esc(thDate(e.d, true) + ' · ' + e.tm + ' · ' + e.where) + '</span>' + (l >= 0 ? '<span class="pill' + (l <= 30 ? ' hot' : '') + '">อีก ' + l + ' วัน</span>' : '<span class="pill">สอบแล้ว</span>') + '</div>'); });
+  h.push('</div>');
+  if (st.ready) {
+    h.push('<div class="uprog"><div class="meter"><i style="width:' + Math.round(st.pct * 100) + '%"></i></div><span>อ่านครบ ' + st.done + '/' + st.ready + ' หน่วยที่มีสรุป</span></div>');
+    if (id === '10151') h.push('<div class="note"><b>กำลังทยอยทำสรุป</b><br>มีแล้ว ' + st.ready + ' จาก ' + st.total + ' หน่วย · แต่ละหน่วยมีเส้นเวลา ตารางเทียบ ตัวเลขที่ต้องจำ และคำถามท้ายเรื่องของเล่ม · ยังไม่มีข้อสอบในคลังจึงยังไม่มีป้าย 🔥</div>');
+    else h.push('<p class="legend">ป้ายอย่าง <span class="ex">ก4</span> <span class="ex">ห3</span> คือข้อที่เคยออกในแบบประเมินตนเองก่อนเรียน (ก) หรือหลังเรียน (ห) ของหน่วยนั้น' + (id === '41216' ? ' · แตะเลขมาตราสีเข้มเพื่อเปิดตัวบท' : '') + '</p>');
+  } else {
+    h.push('<div class="note"><b>ยังไม่มีสรุปของวิชานี้</b><br>เอกสารการสอนทั้ง 15 หน่วยแปลงเป็นข้อความเข้าคลังแล้ว แต่ยังไม่ได้เรียบเรียงเป็นหน้าสรุป รายชื่อหน่วยด้านล่างจะเปิดได้เมื่อสรุปเสร็จ</div>');
+  }
+  h.push('</section>');
+  s.groups.forEach(function(g){
+    var us = M.units.filter(function(u){ return u.sj === id && u.g === g[0]; });
+    if (!us.length) return;
+    h.push('<h2 class="grp">' + esc(g[1]) + '</h2><ol class="units">' + us.map(unitRow).join('') + '</ol>');
+  });
+  h.push(foot());
+  $('#view').innerHTML = h.join('');
+}
+
+/* ---------- unit */
+var cache = {}, curU = null, curMode = 'full', unspy = null, laws = {}, resumeTo = null;
+function siblings(u){
+  return M.units.filter(function(x){ return x.sj === u.sj && x.ready && (u.kind === 'unit' ? x.kind === 'unit' : x.g === u.g); });
+}
+function modeBtns(u, mode){
+  var b = [];
+  if (u.one) b.push(['one', 'หน้าเดียว', '~' + (u.mo || 5) + ' นาที']);
+  b.push(['quick', 'ทวนเร็ว', '~' + u.mq + ' นาที']);
+  b.push(['full', 'อ่านเต็ม', '~' + u.mf + ' นาที']);
+  return '<div class="seg" role="group" aria-label="โหมดการอ่าน">' + b.map(function(x){
+    return '<button type="button" data-mode="' + x[0] + '" aria-pressed="' + (x[0] === mode) + '">' + x[1] + '<small>' + x[2] + '</small></button>';
+  }).join('') + '</div>';
+}
+function showUnit(k){
+  var u = UNITS[k], s = subjOf(u.sj);
+  curU = u;
+  var mode = P.mode;
+  if (mode === 'one' && !u.one) mode = 'full';
+  curMode = mode;
+  setBar(s.name + (u.n ? ' · หน่วย ' + u.n : ''), 's-' + s.id, u.sj, true);
+  var grpName = '';
+  s.groups.forEach(function(g){ if (g[0] === u.g) grpName = g[1]; });
+  var h = [];
+  h.push('<section class="uhead"><div class="eyebrow">' + esc(s.name + ' ' + s.id + (grpName ? ' · ' + grpName : '')) + '</div>');
+  h.push('<h1>' + (u.n ? '<span class="unum">' + pad(u.n) + '</span>' : '') + '<span>' + esc(u.t) + '</span></h1>');
+  h.push('<div class="umeta">' + (u.upd ? '<span class="pill">อัปเดตสรุป ' + esc(thDate(u.upd)) + '</span>' : '') + '<span class="pill">' + secIds(u).length + ' ส่วน</span></div>');
+  h.push('<div class="uprog" id="uprog"></div>');
+  h.push(modeBtns(u, mode));
+  h.push('</section><nav class="rail" id="rail" aria-label="ส่วนในหน่วยนี้"></nav><div id="doc" class="mode-' + mode + '"><div class="loading">กำลังเปิดหน่วยนี้…</div></div><section class="uend" id="uend"></section>');
+  $('#view').innerHTML = h.join('');
+  S.seen[k] = Date.now(); saveLocal();
+  loadDoc(u, mode);
+}
+function loadDoc(u, mode){
+  var file = 'u/' + u.k + (mode === 'one' ? '-one' : '') + '.html';
+  var doc = $('#doc');
+  var done = function(txt){
+    if (curU !== u) return;
+    doc.className = 'mode-' + mode;
+    doc.innerHTML = txt;
+    decorate(u, mode);
+  };
+  if (cache[file]) return done(cache[file]);
+  getText(file).then(function(t){ cache[file] = t; done(t); }).catch(function(){
+    if (curU !== u) return;
+    doc.innerHTML = '<div class="note"><b>เปิดหน่วยนี้ไม่ได้</b><br>อาจเป็นเพราะสัญญาณอินเทอร์เน็ต <button class="more" type="button" id="retry">ลองอีกครั้ง</button></div>';
+    $('#retry').addEventListener('click', function(){ loadDoc(u, mode); });
+  });
+}
+var CHECK = '<svg viewBox="0 0 20 20" aria-hidden="true"><circle class="cc" cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="1.6"/><path class="ck" d="M6 10.5l2.7 2.7L14.5 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+function decorate(u, mode){
+  laws = {};
+  var ld = $('#doc .lawdata');
+  if (ld) { try { laws = JSON.parse(ld.textContent); } catch (e) {} }
+  var r = S.r[u.k] || {};
+  if (mode !== 'one') {
+    $$('#doc .sec').forEach(function(sec){
+      var end = $('.sec-end', sec);
+      if (!end) return;
+      var on = !!r[sec.id];
+      end.innerHTML = '<button type="button" class="done-btn" data-sec="' + sec.id + '" aria-pressed="' + on + '">' + CHECK + '<span>' + (on ? 'อ่านส่วนนี้แล้ว' : 'อ่านส่วนนี้จบ') + '</span></button>';
+    });
+  }
+  $$('#doc .law').forEach(function(q){
+    if (q.closest('details')) return;
+    if (q.scrollHeight > q.clientHeight + 4 || q.textContent.length > 520) {
+      q.classList.add('clamp');
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'more'; b.textContent = 'อ่านทั้งมาตรา ▾';
+      b.addEventListener('click', function(){ q.classList.remove('clamp'); b.remove(); });
+      q.insertAdjacentElement('afterend', b);
+    }
+  });
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function(es){ es.forEach(function(e){ if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }); }, {threshold:.25});
+    $$('#doc .watch').forEach(function(el){ io.observe(el); });
+  }
+  buildRail(u, mode);
+  refreshMarks();
+  endBlock(u, mode);
+  if (unspy) unspy();
+  unspy = spy(u, mode);
+  var target = resumeTo;
+  resumeTo = null;
+  if (target && mode !== 'one') {
+    var el = document.getElementById(target);
+    if (el && el.offsetParent !== null) { setTimeout(function(){ el.scrollIntoView({block:'start'}); }, 30); }
+  }
+}
+function buildRail(u, mode){
+  var rail = $('#rail');
+  if (!rail) return;
+  if (mode === 'one') { rail.hidden = true; return; }
+  rail.hidden = false;
+  rail.innerHTML = (u.toc || []).filter(function(t){ return mode === 'full' || t.hl; }).map(function(t){
+    return '<button type="button" data-go="' + t.id + '">' + esc(t.t) + '</button>';
+  }).join('');
+}
+function refreshMarks(){
+  var u = curU, r = u ? (S.r[u.k] || {}) : {};
+  if (u && $('#uprog')) {
+    var n = secIds(u).length, rc = readCount(u);
+    $('#uprog').innerHTML = '<div class="meter"><i style="width:' + Math.round(rc / Math.max(n, 1) * 100) + '%"></i></div><span>อ่านแล้ว ' + rc + '/' + n + ' ส่วน</span>';
+    $$('#rail button').forEach(function(b){ b.classList.toggle('done', !!r[b.getAttribute('data-go')]); });
+    $$('#doc .done-btn').forEach(function(b){
+      var on = !!r[b.getAttribute('data-sec')];
+      b.setAttribute('aria-pressed', on);
+      b.lastChild.textContent = on ? 'อ่านส่วนนี้แล้ว' : 'อ่านส่วนนี้จบ';
+    });
+    var ad = $('#allDone');
+    if (ad) ad.hidden = !(n && rc >= n);
+  }
+  var rt = route();
+  if (rt.v === 'home') showHome();
+  else if (rt.v === 'subj') showSubj(rt.id);
+  updSync();
+}
+function endBlock(u, mode){
+  var sib = siblings(u), i = sib.indexOf(u), pv = sib[i - 1], nx = sib[i + 1], h = [];
+  if (mode === 'one') {
+    var t = S.o[u.k];
+    h.push('<button type="button" class="done-btn" id="oneDone" aria-pressed="' + !!t + '">' + CHECK + '<span>' + (t ? 'ทวนหน้าเดียวล่าสุด ' + esc(thDate(new Date(t))) : 'ทวนหน้าเดียวจบแล้ว') + '</span></button>');
+  } else {
+    h.push('<div class="all-done" id="allDone" hidden>อ่านครบทุกส่วนของหน่วยนี้แล้ว รอบหน้าลองโหมด “ทวนเร็ว” ดู</div>');
+  }
+  h.push('<div class="nav2">' + (pv ? '<a href="#u-' + pv.k + '"><span>← ก่อนหน้า</span><b>' + esc((pv.n ? 'หน่วย ' + pv.n + ' ' : '') + pv.t) + '</b></a>' : '<span></span>') +
+    (nx ? '<a class="nx" href="#u-' + nx.k + '"><span>ถัดไป →</span><b>' + esc((nx.n ? 'หน่วย ' + nx.n + ' ' : '') + nx.t) + '</b></a>' : '<span></span>') + '</div>');
+  h.push('<p class="srcs">ย่อจากหน้าสรุปในคลัง · ตัวบทคัดคำต่อคำจากหน้าตัวบท ป.อ. ในคลัง · ป้ายสีเทาท้ายประโยคบอกแหล่งของข้อความนั้น</p>');
+  $('#uend').innerHTML = h.join('');
+  refreshMarks();
+}
+function spy(u, mode){
+  var secs = $$('#doc .sec'), last = null, raf = 0;
+  var fn = function(){
+    if (raf) return;
+    raf = requestAnimationFrame(function(){
+      raf = 0;
+      var de = document.documentElement, m = de.scrollHeight - de.clientHeight;
+      $('#prog').style.width = (m > 0 ? Math.min(100, scrollY / m * 100) : 0) + '%';
+      if (mode === 'one') return;
+      var y = innerHeight * 0.32, cur = null;
+      for (var i = 0; i < secs.length; i++) {
+        if (secs[i].offsetParent === null) continue;
+        if (secs[i].getBoundingClientRect().top <= y) cur = secs[i].id; else if (cur) break;
+      }
+      if (!cur && secs[0]) cur = secs[0].id;
+      if (cur && cur !== last) {
+        last = cur;
+        $$('#rail button').forEach(function(b){
+          var on = b.getAttribute('data-go') === cur;
+          b.classList.toggle('on', on);
+          if (on) { var rl = $('#rail'); rl.scrollTo({left:b.offsetLeft - 24, behavior:'smooth'}); }
+        });
+        S.last = {k:u.k, s:cur};
+        touch();
+      }
+    });
+  };
+  addEventListener('scroll', fn, {passive:true});
+  fn();
+  return function(){ removeEventListener('scroll', fn); $('#prog').style.width = '0'; };
+}
+
+/* ---------- events */
+document.addEventListener('click', function(e){
+  var t = e.target;
+  var res = t.closest('[data-resume]');
+  if (res && S.last) { resumeTo = S.last.s; }
+  var md = t.closest('.seg button');
+  if (md && curU) {
+    var m = md.getAttribute('data-mode');
+    if (m === curMode) return;
+    var reload = (m === 'one') !== (curMode === 'one');
+    P.mode = m; savePref(); curMode = m;
+    $$('.seg button').forEach(function(b){ b.setAttribute('aria-pressed', b === md); });
+    if (reload) { if (unspy) unspy(); unspy = null; $('#doc').innerHTML = '<div class="loading">กำลังเปิด…</div>'; loadDoc(curU, m); }
+    else { $('#doc').className = 'mode-' + m; buildRail(curU, m); refreshMarks(); if (unspy) unspy(); unspy = spy(curU, m); }
+    return;
+  }
+  var go = t.closest('#rail button');
+  if (go) { var el = document.getElementById(go.getAttribute('data-go')); if (el) el.scrollIntoView({block:'start', behavior:'smooth'}); return; }
+  var db = t.closest('.done-btn');
+  if (db && curU) {
+    if (db.id === 'oneDone') { S.o[curU.k] = Date.now(); touch(); endBlock(curU, curMode); return; }
+    var sid = db.getAttribute('data-sec'), r = S.r[curU.k] || (S.r[curU.k] = {});
+    if (r[sid]) delete r[sid]; else r[sid] = 1;
+    touch(); refreshMarks();
+    return;
+  }
+  var lr = t.closest('.lr');
+  if (lr) { openLaw(lr.getAttribute('data-s'), lr.textContent); return; }
+  if (t.closest('[data-close]')) { closeSheet(); return; }
+  var tg = t.closest('[data-toc]');
+  if (tg) { closeSheet(); var el2 = document.getElementById(tg.getAttribute('data-toc')); if (el2) setTimeout(function(){ el2.scrollIntoView({block:'start'}); }, 220); return; }
+});
+
+/* ---------- sheet */
+var lastFocus = null;
+function openSheet(title, html){
+  lastFocus = document.activeElement;
+  $('#sheetT').textContent = title; $('#sheetC').innerHTML = html;
+  var sh = $('#sheet'); sh.hidden = false;
+  requestAnimationFrame(function(){ requestAnimationFrame(function(){ sh.classList.add('open'); }); });
+  setTimeout(function(){ var c = $('.sheet-h [data-close]'); if (c) c.focus(); }, 60);
+}
+function closeSheet(){
+  var sh = $('#sheet');
+  if (sh.hidden) return;
+  sh.classList.remove('open');
+  setTimeout(function(){ sh.hidden = true; if (lastFocus && lastFocus.focus) lastFocus.focus(); }, 230);
+}
+addEventListener('keydown', function(e){ if (e.key === 'Escape') closeSheet(); });
+function openLaw(id, label){
+  var paras = laws[id];
+  if (!paras) return;
+  openSheet(label.replace(/^ม\./, 'มาตรา '), '<div class="law-t">' + paras.map(function(p){ return '<p>' + esc(p).replace(/\n/g, '<br>') + '</p>'; }).join('') + '</div><p class="cap">ประมวลกฎหมายอาญา · คัดคำต่อคำจากหน้าตัวบทในคลัง</p>');
+}
+$('#tocBtn').addEventListener('click', function(){
+  var u = curU; if (!u) return;
+  if (curMode === 'one') { openSheet('สารบัญ', '<p class="cap">โหมดหน้าเดียวเป็นแผ่นสั้นแผ่นเดียว สลับเป็น “อ่านเต็ม” เพื่อดูสารบัญทั้งหน่วย</p>'); return; }
+  var r = S.r[u.k] || {}, h = ['<ul class="toc">'];
+  (u.toc || []).forEach(function(t){
+    if (curMode === 'quick' && !t.hl) return;
+    h.push('<li><button type="button" data-toc="' + t.id + '"><span class="ck2">' + (r[t.id] ? '✓' : '') + '</span><span>' + esc(t.t) + '</span></button>');
+    var subs = (t.sub || []).filter(function(x){ return x.lvl <= 3; });
+    if (subs.length && curMode === 'full') { h.push('<ul class="toc sub">' + subs.map(function(x){ return '<li><button type="button" data-toc="' + x.id + '"><span class="ck2"></span><span>' + esc(x.t) + '</span></button></li>'; }).join('') + '</ul>'); }
+    h.push('</li>');
+  });
+  h.push('</ul>');
+  openSheet(u.n ? 'หน่วย ' + u.n + ' · สารบัญ' : 'สารบัญ', h.join(''));
+});
+$('#setBtn').addEventListener('click', function(){
+  openSheet('การอ่าน',
+    '<div class="setrow"><div><b>ขนาดตัวอักษร</b><small>จำไว้ในเครื่องนี้</small></div><div class="stepper"><button type="button" id="fsDn" aria-label="เล็กลง">ก−</button><span id="fsV">' + SIZES[P.fs] + ' px</span><button type="button" id="fsUp" aria-label="ใหญ่ขึ้น">ก+</button></div></div>' +
+    '<div class="setrow"><label for="srcSw"><b>แสดงป้ายที่มา</b><small>ป้ายสีเทาท้ายประโยค เช่น “เล่ม 5” “ตัวบท ป.อ.”</small></label><input class="switch" type="checkbox" id="srcSw"' + (P.src ? ' checked' : '') + '></div>' +
+    '<div class="setrow"><div><b>ความคืบหน้า</b><small class="sync"><i></i><span>' + esc(syncText()) + '</span></small></div></div>' +
+    (CFG.enc ? '<div class="setrow"><div><b>ล็อกเครื่องนี้</b><small>ลืมรหัสที่จำไว้ ครั้งหน้าต้องใส่รหัสใหม่</small></div><button type="button" class="done-btn" id="lockNow">ล็อก</button></div>' : ''));
+  var ln = $('#lockNow');
+  if (ln) ln.addEventListener('click', function(){ try { localStorage.removeItem(KS); } catch (e) {} location.reload(); });
+  $('#fsDn').addEventListener('click', function(){ if (P.fs > 0) { P.fs--; applyPref(); savePref(); $('#fsV').textContent = SIZES[P.fs] + ' px'; } });
+  $('#fsUp').addEventListener('click', function(){ if (P.fs < SIZES.length - 1) { P.fs++; applyPref(); savePref(); $('#fsV').textContent = SIZES[P.fs] + ' px'; } });
+  $('#srcSw').addEventListener('change', function(e){ P.src = e.target.checked; applyPref(); savePref(); });
+  updSync();
+});
+
+/* ---------- router */
+function route(){
+  var h = location.hash.slice(1);
+  if (h.indexOf('u-') === 0) return {v:'unit', k:h.slice(2)};
+  if (h.indexOf('s-') === 0) return {v:'subj', id:h.slice(2)};
+  return {v:'home'};
+}
+if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+function render(){
+  var r = route();
+  closeSheet();
+  if (unspy) { unspy(); unspy = null; }
+  curU = null;
+  if (r.v === 'unit' && UNITS[r.k] && UNITS[r.k].ready) showUnit(r.k);
+  else if (r.v === 'subj' && subjOf(r.id)) showSubj(r.id);
+  else showHome();
+  if (!resumeTo) scrollTo(0, 0);
+}
+
+/* ---------- data: plain fetch (claude.ai) or AES-GCM files unlocked by a passphrase (GitHub Pages) */
+var KS = 'llb-key-v1';
+function getText(file){
+  if (!CFG.enc) return fetch(file).then(function(r){ if (!r.ok) throw new Error('net'); return r.text(); });
+  return fetch(file.replace(/\.html$/, '.bin')).then(function(r){ if (!r.ok) throw new Error('net'); return r.arrayBuffer(); }).then(dec);
+}
+function dec(buf){
+  return crypto.subtle.decrypt({name:'AES-GCM', iv:new Uint8Array(buf.slice(0, 12))}, KEY, new Uint8Array(buf.slice(12)))
+    .then(function(pt){ return new TextDecoder().decode(pt); });
+}
+function derive(pw){
+  var te = new TextEncoder();
+  return crypto.subtle.importKey('raw', te.encode(pw), 'PBKDF2', false, ['deriveKey']).then(function(base){
+    return crypto.subtle.deriveKey({name:'PBKDF2', salt:te.encode(CFG.salt), iterations:CFG.iter, hash:'SHA-256'}, base, {name:'AES-GCM', length:256}, true, ['decrypt']);
+  });
+}
+function b64(buf){ var s = '', u = new Uint8Array(buf); for (var i = 0; i < u.length; i++) s += String.fromCharCode(u[i]); return btoa(s); }
+function unb64(t){ var s = atob(t), u = new Uint8Array(s.length); for (var i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u; }
+function tryKey(k){
+  KEY = k;
+  return fetch('data/m.bin', {cache:'no-cache'}).then(function(r){ if (!r.ok) throw new Error('net'); return r.arrayBuffer(); })
+    .then(function(buf){ return dec(buf).then(function(t){ M = JSON.parse(t); return true; }, function(){ KEY = null; return false; }); });
+}
+function lockForm(msg){
+  setBar('', null, '', false);
+  $('#view').innerHTML = '<section class="lock"><div class="lock-mark" aria-hidden="true"><i></i><i></i><i></i></div>' +
+    '<h1>ห้องอ่านสอบ</h1><p>ใส่รหัสผ่านครั้งแรกของเครื่องนี้ เครื่องจะจำไว้ให้ ครั้งต่อไปเปิดได้เลย</p>' +
+    '<form id="lockF" autocomplete="on"><label for="pw">รหัสผ่าน</label><input id="pw" name="password" type="password" autocomplete="current-password" required>' +
+    '<button type="submit" id="pwGo">เปิดห้องอ่าน</button><p class="err" id="pwErr"' + (msg ? '' : ' hidden') + '>' + esc(msg || '') + '</p></form></section>';
+  $('#lockF').addEventListener('submit', function(e){
+    e.preventDefault();
+    var pw = $('#pw').value.normalize('NFC'), btn = $('#pwGo'), err = $('#pwErr');
+    btn.disabled = true; btn.textContent = 'กำลังเปิด…'; err.hidden = true;
+    derive(pw).then(function(k){
+      return tryKey(k).then(function(ok){
+        if (!ok) { err.textContent = 'รหัสไม่ถูก ลองใหม่อีกครั้ง'; err.hidden = false; btn.disabled = false; btn.textContent = 'เปิดห้องอ่าน'; return; }
+        crypto.subtle.exportKey('raw', k).then(function(raw){ try { localStorage.setItem(KS, b64(raw)); } catch (x) {} });
+        start();
+      });
+    }).catch(function(){ err.textContent = 'โหลดเนื้อหาไม่ได้ ตรวจสัญญาณอินเทอร์เน็ตแล้วลองใหม่'; err.hidden = false; btn.disabled = false; btn.textContent = 'เปิดห้องอ่าน'; });
+  });
+  setTimeout(function(){ var i = $('#pw'); if (i) i.focus(); }, 50);
+}
+function unlock(){
+  if (!window.crypto || !crypto.subtle) { lockForm('เบราว์เซอร์นี้เปิดเนื้อหาที่เข้ารหัสไม่ได้ ลองเปิดด้วย Safari หรือ Chrome รุ่นใหม่'); return; }
+  var saved = null;
+  try { saved = localStorage.getItem(KS); } catch (e) {}
+  if (!saved) { lockForm(); return; }
+  crypto.subtle.importKey('raw', unb64(saved), {name:'AES-GCM'}, true, ['decrypt']).then(tryKey).then(function(ok){
+    if (ok) start(); else { try { localStorage.removeItem(KS); } catch (e) {} lockForm('รหัสเปลี่ยนแล้ว ใส่รหัสใหม่อีกครั้ง'); }
+  }).catch(function(){ lockForm('โหลดเนื้อหาไม่ได้ ตรวจสัญญาณอินเทอร์เน็ตแล้วลองใหม่'); });
+}
+function start(){
+  M.units.forEach(function(u){ UNITS[u.k] = u; });
+  if (UNITS['40101-x-intro']) UNITS['40101-x-intro'].g = 'intro';
+  addEventListener('hashchange', render);
+  render();
+}
+if (CFG.enc) unlock(); else start();
+})();
+</script>
+<script>if("serviceWorker" in navigator){addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){});});}</script></body></html>
