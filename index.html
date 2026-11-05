@@ -214,6 +214,14 @@ details.co[open]>summary::after{content:" ▴"}
 details.dt{border:1px solid var(--line);border-radius:12px;padding:10px 16px;margin:0 0 1em;background:var(--card)}
 details.dt>summary{cursor:pointer;font:500 .92em var(--display)}
 .dt-b{margin-top:.8em}
+.fcs{margin:0 0 1.1em}
+.fc-cap{font-size:.8rem;color:var(--muted);margin:0 0 .6em}
+details.fc{border:1px solid var(--line);border-radius:12px;background:var(--card);margin:0 0 .6em}
+details.fc>summary{cursor:pointer;list-style:none;padding:12px 16px;font:500 .95em var(--display);line-height:1.55}
+details.fc>summary::-webkit-details-marker{display:none}
+details.fc>summary::after{content:"แตะดูเฉลย ▾";display:block;margin-top:.3em;font:400 .74rem var(--body);color:var(--muted)}
+details.fc[open]>summary::after{content:"ซ่อนเฉลย ▴"}
+.fc-a{padding:10px 16px 12px;border-top:1px dashed var(--line);line-height:1.7}
 .tl ol{list-style:none;margin:0 0 1.1em 6px;padding:2px 0 0 20px;border-left:2px solid var(--line)}
 .tl li{position:relative;padding:0 0 14px 2px;line-height:1.6}
 .tl li::before{content:"";position:absolute;left:-27px;top:.3em;width:12px;height:12px;box-sizing:border-box;border-radius:50%;background:var(--paper);border:3px solid var(--sc)}
@@ -305,7 +313,7 @@ var SUBJ = [
   {id:'41216', name:'กฎหมายอาญา', exams:[
     {l:'สอบกลางภาค', d:'2026-11-29', tm:'10.45–12.15 น.', where:'ออนไลน์', scope:'หน่วย 1–7 · ปรนัยและอัตนัย'},
     {l:'สอบปลายภาค', d:'2027-02-06', tm:'13.30–15.30 น.', where:'ออนไลน์', scope:'หน่วย 8–15'}],
-    groups:[['one','สรุปหน้าเดียว · หน่วย 1–7'],['mid','สอบกลางภาค · หน่วย 1–7'],['practice','ฝึกเขียนตอบ'],['final','สอบปลายภาค · หน่วย 8–15']]},
+    groups:[['one','สรุปหน้าเดียว · หน่วย 1–7'],['mid','สอบกลางภาค · หน่วย 1–7'],['practice','ฝึกเขียนตอบ'],['final','สอบปลายภาค · หน่วย 8–15'],['law','ตัวบทหลัก · ใช้ปลายภาค']]},
   {id:'40101', name:'กฎหมายทั่วไป', exams:[
     {l:'สอบปลายภาค', d:'2027-02-07', tm:'09.00–12.00 น.', where:'สนามสอบ', scope:'หน่วย 1–15 · ปรนัย'}],
     groups:[['intro','เริ่มที่นี่'],['final','15 หน่วย'],['practice','ก่อนเข้าห้องสอบ']]},
@@ -403,7 +411,7 @@ function ring(p, size){
     (p >= 1 ? '<path d="M11.5 17.5l3.8 3.8 7.5-8.3" class="rg-c"/>' : '') + '</svg>';
 }
 var ARROW = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>';
-function unitLabel(u){ return u.n ? 'หน่วย ' + u.n : (u.g === 'concept' ? 'คอนเซปต์' : u.g === 'practice' || u.g === 'intro' ? 'แผ่นเสริม' : ''); }
+function unitLabel(u){ return u.n ? 'หน่วย ' + u.n : (u.g === 'concept' ? 'คอนเซปต์' : u.g === 'law' ? 'ตัวบท' : u.g === 'practice' || u.g === 'intro' ? 'แผ่นเสริม' : ''); }
 function seenText(k){ var t = S.seen[k]; if (!t) return ''; return 'เปิดล่าสุด ' + thDate(new Date(t)); }
 
 /* ---------- top bar */
