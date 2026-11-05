@@ -311,7 +311,7 @@ var SUBJ = [
     groups:[['intro','เริ่มที่นี่'],['final','15 หน่วย'],['practice','ก่อนเข้าห้องสอบ']]},
   {id:'10151', name:'ไทยศึกษา', exams:[
     {l:'สอบปลายภาค', d:'2027-02-07', tm:'13.30–16.30 น.', where:'สนามสอบ', scope:'หน่วย 1–15'}],
-    groups:[['final','15 หน่วย']]}
+    groups:[['final','15 หน่วย'],['concept','คอนเซปต์ข้ามหน่วย']]}
 ];
 var UNITS = {};
 
@@ -403,7 +403,7 @@ function ring(p, size){
     (p >= 1 ? '<path d="M11.5 17.5l3.8 3.8 7.5-8.3" class="rg-c"/>' : '') + '</svg>';
 }
 var ARROW = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>';
-function unitLabel(u){ return u.n ? 'หน่วย ' + u.n : (u.g === 'practice' || u.g === 'intro' ? 'แผ่นเสริม' : ''); }
+function unitLabel(u){ return u.n ? 'หน่วย ' + u.n : (u.g === 'concept' ? 'คอนเซปต์' : u.g === 'practice' || u.g === 'intro' ? 'แผ่นเสริม' : ''); }
 function seenText(k){ var t = S.seen[k]; if (!t) return ''; return 'เปิดล่าสุด ' + thDate(new Date(t)); }
 
 /* ---------- top bar */
@@ -489,7 +489,7 @@ function showSubj(id){
   h.push('</div>');
   if (st.ready) {
     h.push('<div class="uprog"><div class="meter"><i style="width:' + Math.round(st.pct * 100) + '%"></i></div><span>อ่านครบ ' + st.done + '/' + st.ready + ' หน่วยที่มีสรุป</span></div>');
-    if (id === '10151') h.push('<div class="note"><b>กำลังทยอยทำสรุป</b><br>มีแล้ว ' + st.ready + ' จาก ' + st.total + ' หน่วย · แต่ละหน่วยมีเส้นเวลา ตารางเทียบ ตัวเลขที่ต้องจำ และคำถามท้ายเรื่องของเล่ม · ยังไม่มีข้อสอบในคลังจึงยังไม่มีป้าย 🔥</div>');
+    if (id === '10151') h.push('<div class="note"><b>' + (st.ready >= st.total ? 'สรุปครบ ' + st.total + ' หน่วยแล้ว' : 'กำลังทยอยทำสรุป') + '</b><br>' + (st.ready >= st.total ? 'ท้ายรายชื่อหน่วยมีหน้าคอนเซปต์ข้ามหน่วย รวมเรื่องเดียวกันจากหลายหน่วย พร้อมจุดที่เล่มเขียนไม่ตรงกัน' : 'มีแล้ว ' + st.ready + ' จาก ' + st.total + ' หน่วย') + ' · แต่ละหน่วยมีเส้นเวลา ตารางเทียบ ตัวเลขที่ต้องจำ และคำถามท้ายเรื่องของเล่ม · ยังไม่มีข้อสอบในคลังจึงยังไม่มีป้าย 🔥</div>');
     else h.push('<p class="legend">ป้ายอย่าง <span class="ex">ก4</span> <span class="ex">ห3</span> คือข้อที่เคยออกในแบบประเมินตนเองก่อนเรียน (ก) หรือหลังเรียน (ห) ของหน่วยนั้น' + (id === '41216' ? ' · แตะเลขมาตราสีเข้มเพื่อเปิดตัวบท' : '') + '</p>');
   } else {
     h.push('<div class="note"><b>ยังไม่มีสรุปของวิชานี้</b><br>เอกสารการสอนทั้ง 15 หน่วยแปลงเป็นข้อความเข้าคลังแล้ว แต่ยังไม่ได้เรียบเรียงเป็นหน้าสรุป รายชื่อหน่วยด้านล่างจะเปิดได้เมื่อสรุปเสร็จ</div>');
